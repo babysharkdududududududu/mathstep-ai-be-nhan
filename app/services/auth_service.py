@@ -57,14 +57,14 @@ class AuthService:
             if request.role == "STUDENT":
                 student = Student(
                     user_id=user.id,
-                    name=request.name
+                    name=f"{request.firstName} {request.lastName}"
                 )
                 db.add(student)
 
             elif request.role == "PARENT":
                 parent = Parent(
                     user_id=user.id,
-                    name=request.name
+                    name=f"{request.firstName} {request.lastName}"
                 )
                 db.add(parent)
             
