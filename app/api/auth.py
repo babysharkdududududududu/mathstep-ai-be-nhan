@@ -12,7 +12,10 @@ from app.schemas.auth import (
     LoginRequest,
     GoogleLoginRequest,
     TokenResponse,
-    UserResponse
+    UserResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    RefreshTokenRequest
 )
 from app.services.auth_service import AuthService
 from app.core.config import get_settings
@@ -186,6 +189,66 @@ async def google_login_with_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid Google token: {str(e)}"
         )
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Request password reset.
+    
+    Sends password reset email to user.
+    Does not reveal if email exists (security best practice).
+    
+    Request Body:
+        - email: User email address
+    
+    Returns:
+        Success message
+    """
+    return AuthService.forgot_password(db, request.email)
+
+
+@router.post("/reset-password")
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Reset password with token.
+    
+    Validates reset token and updates user password.
+    
+    Request Body:
+        - token: Reset token from email
+        - new_password: New password (min 8 characters)
+    
+    Returns:
+        Success message
+    """
+    return AuthService.reset_password(db, request.token, request.new_password)
+
+
+@router.post("/refresh-token", response_model=TokenResponse)
+def refresh_token(
+    request: RefreshTokenRequest,
+    db: Session = Depends(get_db)
+) -> TokenResponse:
+    """
+    Refresh access token using refresh token.
+    
+    Supports the "Keep me logged in" functionality by allowing
+    long-lived refresh tokens to obtain new short-lived access tokens.
+    
+    Request Body:
+        - refresh_token: Long-lived refresh token from login response
+    
+    Returns:
+        New token response with fresh access token
+    """
+    return AuthService.refresh_token(db, request.refresh_token)
 
 
 @router.get("/me", response_model=UserResponse)

@@ -88,3 +88,67 @@ def decode_access_token(token: str) -> Optional[dict]:
         return payload
     except JWTError:
         return None
+
+
+def create_refresh_token(
+    data: dict,
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """
+    Create a JWT refresh token (long-lived).
+    
+    Args:
+        data: Data to encode in token (must include 'sub' for user ID)
+        expires_delta: Optional expiration time delta
+        
+    Returns:
+        Encoded JWT refresh token
+    """
+    settings = get_settings()
+    
+    # Set default expiration if not provided
+    if expires_delta is None:
+        expires_delta = timedelta(
+            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
+    
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire, "type": "refresh"})
+    
+    # Encode JWT
+    encoded_jwt = jwt.encode(
+        to_encode,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM
+    )
+    
+    return encoded_jwt
+
+
+def decode_refresh_token(token: str) -> Optional[dict]:
+    """
+    Decode and validate a JWT refresh token.
+    
+    Args:
+        token: JWT refresh token to decode
+        
+    Returns:
+        Decoded token payload if valid, None otherwise
+    """
+    settings = get_settings()
+    
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        
+        # Verify it's a refresh token
+        if payload.get("type") != "refresh":
+            return None
+            
+        return payload
+    except JWTError:
+        return None
