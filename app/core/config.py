@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     
+    # SMTP Email Configuration (Gmail)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str
+    SMTP_PASSWORD: str
+    SMTP_FROM: str
+    SMTP_FROM_NAME: str = "MathStep AI Vi Nhan"
+    
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str
