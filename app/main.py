@@ -19,10 +19,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
+origins = [
+    "https://mathstep-ai-fe-7z28.vercel.app",
+    "http://localhost:3000",  # nếu dev local
+]
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
