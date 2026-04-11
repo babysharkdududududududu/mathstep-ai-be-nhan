@@ -107,12 +107,16 @@ class AuthService:
         except Exception as e:
             db.rollback()
             # Don't expose internal error details in production
+            # import traceback
+            # traceback.print_exc()  # Log for debugging
+            # raise HTTPException(
+            #     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            #     detail="Registration failed. Please try again."
+            # )
             import traceback
-            traceback.print_exc()  # Log for debugging
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Registration failed. Please try again."
-            )
+            print("REGISTER ERROR:", str(e))
+            traceback.print_exc()
+            raise e
     
     @staticmethod
     def login_user(
