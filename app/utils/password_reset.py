@@ -4,7 +4,7 @@ Password reset utilities - Token generation and verification.
 
 import secrets
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.password_reset import PasswordResetToken
@@ -74,7 +74,7 @@ def create_password_reset_token(
     reset_token = PasswordResetToken(
         user_id=user_id,
         token=hashed_token,
-        expires_at=datetime.utcnow() + timedelta(hours=expires_in_hours)
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=expires_in_hours)
     )
     
     db.add(reset_token)

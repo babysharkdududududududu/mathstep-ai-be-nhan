@@ -24,6 +24,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=True)  # Nullable for OAuth users
     google_id = Column(String, unique=True, nullable=True, index=True)
+    auth_provider = Column(String, default="local", nullable=False)
     role = Column(Enum(UserRole), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     

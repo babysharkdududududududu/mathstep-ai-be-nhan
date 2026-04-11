@@ -6,7 +6,7 @@ from sqlalchemy import Column, String, DateTime, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from app.db.base import Base
 
 
@@ -26,7 +26,7 @@ class PasswordResetToken(Base):
     
     def is_expired(self) -> bool:
         """Check if token is expired."""
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
     
     def is_used(self) -> bool:
         """Check if token has been used."""
@@ -34,7 +34,7 @@ class PasswordResetToken(Base):
     
     def mark_as_used(self):
         """Mark token as used."""
-        self.used_at = datetime.utcnow()
+        self.used_at = datetime.now(timezone.utc)
     
     def __repr__(self):
         return f"<PasswordResetToken(id={self.id}, user_id={self.user_id}, expired={self.is_expired()})>"

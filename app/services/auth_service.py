@@ -58,6 +58,7 @@ class AuthService:
             user = User(
                 email=request.email,
                 password_hash=password_hash,
+                auth_provider="local",  # Email/password registration
                 role=UserRole(request.role)
             )
             db.add(user)
@@ -238,6 +239,7 @@ class AuthService:
             user = User(
                 email=email,
                 google_id=google_id,
+                auth_provider="google",  # Google OAuth authentication
                 role=UserRole.STUDENT  # Default role
             )
             db.add(user)
@@ -301,7 +303,8 @@ class AuthService:
     ) -> dict:
         """
         Handle forgot password request.
-        Generates a reset token and sends email.
+        Only allows local auth users to reset passwords.
+        Google OAuth users cannot use password reset.
         
         Args:
             db: Database session
@@ -311,7 +314,7 @@ class AuthService:
             Dictionary with status message
             
         Raises:
-            HTTPException: If email not found
+            HTTPException: If email not found or other errors
         """
         from app.utils.password_reset import create_password_reset_token
         from app.utils.email import send_password_reset_email
@@ -326,6 +329,13 @@ class AuthService:
                 "message": "If an account exists with this email, a password reset link has been sent."
             }
         
+        # CHECK: Only local auth users can reset password
+        if user.auth_provider == "google":
+            # Don't reveal which provider (privacy), but guide them to correct method
+            return {
+                "message": "If an account exists with this email, a password reset link has been sent."
+            }
+        
         try:
             # Create reset token
             reset_token = create_password_reset_token(db, str(user.id))
@@ -336,14 +346,18 @@ class AuthService:
             if not email_sent:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to send reset email. Please try again."
+                    detail="Failed to send reset email. Please check your .env SMTP configuration."
                 )
             
             return {
-                "message": "Password reset link sent to your email."
+                "message": "If an account exists with this email, a password reset link has been sent."
             }
             
+        except HTTPException:
+            raise
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to process password reset request."
