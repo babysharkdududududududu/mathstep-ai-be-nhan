@@ -27,38 +27,48 @@ class AuthService:
         db: Session,
         request: RegisterRequest
     ) -> TokenResponse:
-       
+
         # Validate role
         if request.role not in ["STUDENT", "PARENT"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid role. Must be STUDENT or PARENT."
             )
-        
-        # Validate password length in bytes (bcrypt limit is 72 bytes)
+
+        # Validate password length (bcrypt limit)
         if len(request.password.encode('utf-8')) > 72:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Password too long (max 72 bytes for bcrypt)."
             )
-        
+
+        # 🔥 CHECK DUPLICATE EMAIL (QUAN TRỌNG)
+        existing_user = db.query(User).filter(User.email == request.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered."
+            )
+
         # Hash password
         password_hash = hash_password(request.password)
-        
+
         try:
-            # Create User
+            # Create user
             user = User(
                 email=request.email,
                 password_hash=password_hash,
                 role=UserRole(request.role)
             )
             db.add(user)
-            db.flush()  # Flush to get the user ID
-            
-            # Get full name from request
-            full_name = request.get_full_name()
-            
-            # Create corresponding entity based on role
+            db.flush()  # đảm bảo user.id có
+
+            # 🔥 FIX NAME (KHÔNG BAO GIỜ RỖNG)
+            full_name = (request.get_full_name() or "").strip()
+            if not full_name:
+                full_name = "User"
+
+            # Create role-specific entity
             if request.role == "STUDENT":
                 student = Student(
                     user_id=user.id,
@@ -72,19 +82,26 @@ class AuthService:
                     name=full_name
                 )
                 db.add(parent)
-            
+
             db.commit()
             db.refresh(user)
-            
+
             # Create tokens
             access_token = create_access_token(
-                data={"sub": str(user.id), "email": user.email, "role": user.role.value}
+                data={
+                    "sub": str(user.id),
+                    "email": user.email,
+                    "role": user.role.value
+                }
             )
-            
+
             refresh_token = create_refresh_token(
-                data={"sub": str(user.id), "email": user.email}
+                data={
+                    "sub": str(user.id),
+                    "email": user.email
+                }
             )
-            
+
             return TokenResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
@@ -92,31 +109,27 @@ class AuthService:
                 email=user.email,
                 role=user.role.value
             )
-            
+
         except IntegrityError as e:
             db.rollback()
-            if "email" in str(e):
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Email already registered."
-                )
+            print("INTEGRITY ERROR:", str(e))
+
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Registration failed: duplicate entry."
+                detail="Database integrity error (possibly duplicate or invalid data)."
             )
+
         except Exception as e:
             db.rollback()
-            # Don't expose internal error details in production
-            # import traceback
-            # traceback.print_exc()  # Log for debugging
-            # raise HTTPException(
-            #     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            #     detail="Registration failed. Please try again."
-            # )
+
             import traceback
             print("REGISTER ERROR:", str(e))
             traceback.print_exc()
-            raise e
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Registration failed. Please try again."
+            )
     
     @staticmethod
     def login_user(
