@@ -7,26 +7,19 @@ from typing import Optional
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from app.core.config import get_settings
-
-# Password hashing context using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-from passlib.context import CryptContext
 import hashlib
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def _pre_hash(password: str) -> bytes:
-    return hashlib.sha256(password.encode("utf-8")).digest()
+# Password hashing context using bcrypt_sha256 for long passwords.
+# Keep bcrypt for compatibility with existing hashes.
+pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(_pre_hash(password))
+    return pwd_context.hash(password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(_pre_hash(plain_password), hashed_password)
+def verify_password(password: str, hashed: str) -> bool:
+    return pwd_context.verify(password, hashed)
 
 
 def create_access_token(

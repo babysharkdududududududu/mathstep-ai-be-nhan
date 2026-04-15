@@ -10,6 +10,7 @@ import logging
 
 from app.api import auth
 from app.api import setup
+from app.api import user_profile
 from app.db.session import engine
 from app.db.base import Base
 # Import all models to ensure tables are created
@@ -67,6 +68,11 @@ app.include_router(
     setup.router,
     prefix="/setup",
     tags=["Setup"]
+)
+app.include_router(
+    user_profile.router,
+    prefix="/profile",
+    tags=["profile"]
 )
 
 @app.get("/")

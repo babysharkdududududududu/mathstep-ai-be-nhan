@@ -17,10 +17,16 @@ class Parent(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String, nullable=True)
+    display_name = Column(String, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    phone_number = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationship to User
-    user = relationship("User")
+    user = relationship("User", back_populates="parent")
     
     def __repr__(self):
-        return f"<Parent(id={self.id}, user_id={self.user_id}, name={self.name})>"
+        return (
+            f"<Parent(id={self.id}, user_id={self.user_id}, name={self.name}, "
+            f"display_name={self.display_name})>"
+        )

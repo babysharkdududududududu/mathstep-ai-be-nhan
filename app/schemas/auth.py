@@ -50,6 +50,12 @@ class UserResponse(BaseModel):
     id: UUID
     email: str
     role: str
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    preferred_language: Optional[str] = None
+    is_active: bool
+    last_login_at: Optional[datetime] = None
     created_at: datetime
     
     class Config:
@@ -62,6 +68,16 @@ class StudentResponse(BaseModel):
     user_id: UUID
     name: Optional[str] = None
     grade_level: Optional[str] = None
+    level: int
+    xp: int
+    xp_progress: int
+    streak_days: int
+    combo_multiplier: float
+    total_completed_exercises: int
+    reward_points: int
+    current_focus: Optional[str] = None
+    current_lesson: Optional[str] = None
+    last_activity_at: Optional[datetime] = None
     created_at: datetime
     
     class Config:
@@ -73,6 +89,9 @@ class ParentResponse(BaseModel):
     id: UUID
     user_id: UUID
     name: Optional[str] = None
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    phone_number: Optional[str] = None
     created_at: datetime
     
     class Config:

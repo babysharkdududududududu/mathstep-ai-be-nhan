@@ -2,6 +2,7 @@
 Authentication service with business logic.
 """
 from typing import Optional
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -35,14 +36,9 @@ class AuthService:
                 detail="Invalid role. Must be STUDENT or PARENT."
             )
 
-        # Validate password length (bcrypt limit)
-        if len(request.password.encode('utf-8')) > 72:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password too long (max 72 bytes for bcrypt)."
-            )
+        # No explicit 72-byte limit needed because bcrypt_sha256 handles long passwords safely.
 
-        # 🔥 CHECK DUPLICATE EMAIL (QUAN TRỌNG)
+        # CHECK DUPLICATE EMAIL (QUAN TRỌNG)
         existing_user = db.query(User).filter(User.email == request.email).first()
         if existing_user:
             raise HTTPException(
@@ -55,19 +51,21 @@ class AuthService:
 
         try:
             # Create user
+            full_name = (request.get_full_name() or "").strip()
+            if not full_name:
+                full_name = "User"
+
             user = User(
                 email=request.email,
                 password_hash=password_hash,
                 auth_provider="local",  # Email/password registration
-                role=UserRole(request.role)
+                role=UserRole(request.role),
+                display_name=full_name
             )
             db.add(user)
-            db.flush()  # đảm bảo user.id có
+            db.flush() 
 
             # 🔥 FIX NAME (KHÔNG BAO GIỜ RỖNG)
-            full_name = (request.get_full_name() or "").strip()
-            if not full_name:
-                full_name = "User"
 
             # Create role-specific entity
             if request.role == "STUDENT":
@@ -236,17 +234,22 @@ class AuthService:
             
             # User doesn't exist, create new
             # Default role is STUDENT for Google OAuth
+            google_name = (name or "").strip()
+            if not google_name:
+                google_name = email.split("@")[0]
+
             user = User(
                 email=email,
                 google_id=google_id,
                 auth_provider="google",  # Google OAuth authentication
-                role=UserRole.STUDENT  # Default role
+                role=UserRole.STUDENT,  # Default role
+                display_name=google_name
             )
             db.add(user)
             db.flush()
-            
+
             # Create Student record (default role)
-            student = Student(user_id=user.id, name=name)
+            student = Student(user_id=user.id, name=google_name)
             db.add(student)
             
             db.commit()
@@ -385,12 +388,7 @@ class AuthService:
         """
         from app.utils.password_reset import verify_reset_token, invalidate_reset_tokens
         
-        # Validate password length
-        if len(new_password.encode('utf-8')) > 72:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password too long (max 72 bytes for bcrypt)."
-            )
+        # No explicit 72-byte limit needed because bcrypt_sha256 handles long passwords safely.
         
         # Verify token
         reset_token = verify_reset_token(db, token)
